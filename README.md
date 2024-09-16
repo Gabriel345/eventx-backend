@@ -1,2 +1,2 @@
-# eventx-backend
-Passando nosso site de eventos monolito para 
+# Eventx
+Site para criação de eventos educacionais 
