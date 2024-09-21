@@ -1,11 +1,9 @@
 const User = require('../models/user');
 const createError = require('http-errors');
 const Event = require('../models/event');
-
-
-
 const bcrypt = require('bcrypt');
 
+// Criação de usuário
 exports.createUser = async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -19,12 +17,14 @@ exports.createUser = async (req, res) => {
 
     req.session.userId = newUser._id;
    
-    res.redirect('/');
+    // Em vez de redirecionar, retornamos os dados do usuário
+    res.status(201).json(newUser);
   } catch (error) {
-    // Tratar erros
+    res.status(500).json({ message: error.message });
   }
 };
 
+// Obter todos os usuários
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find();
@@ -34,39 +34,38 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
+// Obter perfil do usuário autenticado
 exports.getUserProfile = async (req, res) => {
   try {
     // Verificar se o usuário está autenticado
-    const userId = req.session.userId; // Obtenha o userId da sessão
+    const userId = req.session.userId;
     if (!userId) {
-      return res.redirect('/login');
+      return res.status(401).json({ message: 'Usuário não autenticado' });
     }
 
     // Encontrar o usuário pelo ID
     const user = await User.findById(userId);
 
-    // Verificar se o usuário existe
     if (!user) {
       return res.status(404).json({ message: 'Usuário não encontrado' });
     }
 
-    // Encontrar os eventos criados pelo usuário
+    // Encontrar eventos relacionados ao usuário
     const userEvents = await Event.find({ organizer: userId });
-
-    // Encontrar os eventos cadastrados pelo usuário
     const registeredEvents = await Event.find({ 'participants.user': userId });
 
-    // Passar os eventos criados e cadastrados pelo usuário para o template de página
-    res.locals.userId = userId; // Passa o userId para a visualização
-    res.locals.userEvents = userEvents;
-    res.locals.registeredEvents = registeredEvents;
-
-    // Renderizar a página de perfil
-    res.render('profile', { user });
+    // Retornar o perfil do usuário e eventos associados
+    res.status(200).json({
+      user,
+      userEvents,
+      registeredEvents
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Atualização de usuário
 exports.updateUser = async (req, res) => {
   try {
     const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -79,7 +78,7 @@ exports.updateUser = async (req, res) => {
   }
 };
 
-
+// Exclusão de usuário
 exports.deleteUser = async (req, res) => {
   try {
     const deletedUser = await User.findByIdAndDelete(req.params.id);
