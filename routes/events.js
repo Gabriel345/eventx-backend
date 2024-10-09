@@ -5,13 +5,8 @@ const EventController = require('../controller/eventController');
 // Rota para obter todos os eventos
 router.get('/', EventController.getAllEvents);
 
-// Rota para criar um novo evento (apenas a página de criação)
-router.get('/create', (req, res) => {
-  res.status(200).json({ message: 'Página de criação de evento' });
-});
-
-// Rota para enviar dados e criar um novo evento
-router.post('/create', EventController.createEvent);
+// Rota para criar um novo evento
+router.post('/', EventController.createEvent); // Método POST em /events
 
 // Rota para obter detalhes de um evento específico
 router.get('/:id', EventController.getEventById);
@@ -23,9 +18,9 @@ router.post('/:eventId/register', EventController.registerForEvent);
 router.post('/:eventId/unregister', EventController.unregisterFromEvent);
 
 // Rota para editar um evento
-router.post('/:id/edit', EventController.updateEvent);
+router.put('/:id', EventController.updateEvent); // Método PUT em /events/:id
 
 // Rota para deletar um evento
-router.post('/:id/delete', EventController.deleteEvent);
+router.delete('/:id', EventController.deleteEvent); // Método DELETE em /events/:id
 
 module.exports = router;

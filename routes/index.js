@@ -8,20 +8,19 @@ router.get('/', async function(req, res, next) {
     const events = await Event.find(); // Encontre todos os eventos no banco de dados
     res.render('index', { events, userId: req.session.userId }); // Passe os eventos e o userId para o template
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error); // Passar o erro para o middleware de tratamento de erros
   }
 });
 
 router.get('/logout', function(req, res) {
   // Limpar informações de sessão
   req.session.destroy(function(err) {
-      if (err) {
-          return res.status(500).json({ message: 'Erro ao fazer logout' });
-      }
-      // Redirecionar para a página inicial ou outra página de sua escolha
-      res.redirect('/');
+    if (err) {
+      return res.status(500).json({ message: 'Erro ao fazer logout' });
+    }
+    // Redirecionar para a página inicial com uma mensagem de logout
+    res.redirect('/?message=logout');
   });
 });
-
 
 module.exports = router;

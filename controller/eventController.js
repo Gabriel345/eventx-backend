@@ -1,5 +1,21 @@
 const Event = require('../models/event');
 const path = require('path');
+const { check, validationResult } = require('express-validator');
+
+// Validação para criação de evento
+exports.validateEvent = [
+  check('title').not().isEmpty().withMessage('Título é obrigatório'),
+  check('type').not().isEmpty().withMessage('Tipo é obrigatório'),
+  check('description').isLength({ min: 10 }).withMessage('Descrição deve ter no mínimo 10 caracteres'),
+  check('date').isISO8601().withMessage('Data inválida'),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    next();
+  }
+];
 
 // Criação de evento
 exports.createEvent = async (req, res) => {
@@ -28,11 +44,20 @@ exports.createEvent = async (req, res) => {
   }
 };
 
-// Obter todos os eventos
 exports.getAllEvents = async (req, res) => {
   try {
-    const events = await Event.find();
-    res.status(200).json(events);
+    const { page = 1, limit = 10 } = req.query;
+
+    const count = await Event.countDocuments(); // Contar todos os eventos
+    const events = await Event.find()
+      .limit(limit * 1) // Limitar a quantidade por página
+      .skip((page - 1) * limit); // Pular para a página correta
+
+    res.status(200).json({
+      events,
+      totalPages: Math.ceil(count / limit),
+      currentPage: page
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -88,16 +113,22 @@ exports.deleteEvent = async (req, res) => {
 };
 
 // Registrar para evento
+// Registrar para evento
 exports.registerForEvent = async (req, res) => {
   try {
     const eventId = req.params.eventId;
-
     const event = await Event.findById(eventId);
+
     if (!event) {
       return res.status(404).json({ message: 'Evento não encontrado' });
     }
 
-    event.participants.push({ user: req.body.userId }); // Adicione aqui o ID do usuário do corpo da requisição
+    // Verificar se o usuário já está registrado
+    if (event.participants.some(participant => participant.user === req.body.userId)) {
+      return res.status(400).json({ message: 'Usuário já registrado no evento' });
+    }
+
+    event.participants.push({ user: req.body.userId });
     await event.save();
 
     res.status(200).json({ message: 'Registrado com sucesso' });
@@ -106,17 +137,24 @@ exports.registerForEvent = async (req, res) => {
   }
 };
 
+
+// Cancelar registro de evento
 // Cancelar registro de evento
 exports.unregisterFromEvent = async (req, res) => {
   try {
     const eventId = req.params.eventId;
-
     const event = await Event.findById(eventId);
+
     if (!event) {
       return res.status(404).json({ message: 'Evento não encontrado' });
     }
 
-    event.participants = event.participants.filter(participant => participant.user !== req.body.userId); // Adicione aqui o ID do usuário do corpo da requisição
+    // Verificar se o usuário está registrado no evento
+    if (!event.participants.some(participant => participant.user === req.body.userId)) {
+      return res.status(400).json({ message: 'Usuário não está registrado no evento' });
+    }
+
+    event.participants = event.participants.filter(participant => participant.user !== req.body.userId);
     await event.save();
 
     res.status(200).json({ message: 'Registro cancelado com sucesso' });
@@ -124,3 +162,4 @@ exports.unregisterFromEvent = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+

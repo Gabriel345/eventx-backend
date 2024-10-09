@@ -10,7 +10,8 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    lowercase: true // Transforma o e-mail em minúsculas automaticamente
   },
   passwordHash: {
     type: String,
@@ -34,7 +35,8 @@ const userSchema = new mongoose.Schema({
 // Middleware para fazer hash da senha antes de salvar
 userSchema.pre('save', async function(next) {
   const user = this;
-  if (!user.isModified('password')) return next();
+  // Verifique se a senha é nova ou foi modificada
+  if (!user.isModified('passwordHash')) return next();
 
   try {
     const salt = await bcrypt.genSalt(10); // Número de saltos de hashing
@@ -45,6 +47,11 @@ userSchema.pre('save', async function(next) {
     return next(error);
   }
 });
+
+// Método para verificar a senha
+userSchema.methods.isValidPassword = async function(password) {
+  return bcrypt.compare(password, this.passwordHash);
+};
 
 const User = mongoose.model('User', userSchema);
 

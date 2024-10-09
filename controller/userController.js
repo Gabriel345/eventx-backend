@@ -2,6 +2,20 @@ const User = require('../models/user');
 const createError = require('http-errors');
 const Event = require('../models/event');
 const bcrypt = require('bcrypt');
+const { check, validationResult } = require('express-validator');
+
+exports.validateUser = [
+  check('username').not().isEmpty().withMessage('Nome de usuário é obrigatório'),
+  check('email').isEmail().withMessage('Email inválido'),
+  check('password').isLength({ min: 6 }).withMessage('Senha deve ter no mínimo 6 caracteres'),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    next();
+  }
+];
 
 // Criação de usuário
 exports.createUser = async (req, res) => {
@@ -68,10 +82,20 @@ exports.getUserProfile = async (req, res) => {
 // Atualização de usuário
 exports.updateUser = async (req, res) => {
   try {
-    const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const { password, ...otherData } = req.body;
+    const updatedData = { ...otherData };
+
+    // Se o campo "password" for enviado, re-hash a nova senha
+    if (password) {
+      const saltRounds = 10;
+      updatedData.passwordHash = await bcrypt.hash(password, saltRounds);
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(req.params.id, updatedData, { new: true });
     if (!updatedUser) {
       return res.status(404).json({ message: 'Usuário não encontrado' });
     }
+
     res.status(200).json(updatedUser);
   } catch (error) {
     res.status(500).json({ message: error.message });

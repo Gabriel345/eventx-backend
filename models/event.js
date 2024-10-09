@@ -8,6 +8,7 @@ const eventSchema = new Schema({
   },
   type: {
     type: String,
+    enum: ['tipo1', 'tipo2', 'tipo3'], // Tipos de eventos permitidos
     required: true
   },
   description: {
@@ -16,11 +17,12 @@ const eventSchema = new Schema({
   },
   date: {
     type: Date,
-    required: true
+    required: true,
+    index: true // Adicionando índice para melhorar o desempenho
   },
   organizer: {
     type: Schema.Types.ObjectId,
-    ref: 'User', // Referencia o modelo User
+    ref: 'User',
     required: true
   },
   coverImage: {
@@ -31,12 +33,22 @@ const eventSchema = new Schema({
     {
       user: {
         type: Schema.Types.ObjectId,
-        ref: 'User', // Referenciando o modelo de usuário
+        ref: 'User',
         required: true
+      },
+      status: {
+        type: String,
+        enum: ['confirmed', 'pending', 'declined'],
+        default: 'pending'
       }
     }
   ]
 });
+
+// Método estático para encontrar eventos por organizador
+eventSchema.statics.findByOrganizer = function(organizerId) {
+  return this.find({ organizer: organizerId });
+};
 
 const Event = mongoose.model('Event', eventSchema);
 
