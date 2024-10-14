@@ -4,23 +4,21 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 const connectDB = require("./config");
-var userController = require("./controller/userController");
-const upload = require('./multerConfig');
 const sessionMiddleware = require('./middlewares/sessionMiddleware');
-const cors = require('cors');
+const cors = require('cors'); // Importar o cors
 
-
-var indexRouter = require('./routes/index');
+// Importar rotas
 var usersRouter = require('./routes/users');
 var eventRouter = require('./routes/events');
 var loginRouter = require('./routes/login');
 var profileRouter = require('./routes/profile');
 
+// Conectar ao banco de dados
 connectDB();
 var app = express();
 
-
-app.use(cors());
+// Middleware
+app.use(cors()); // Adicionar middleware CORS
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -28,30 +26,30 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(sessionMiddleware);
 
-app.use('/events', upload.single('coverImage'), eventRouter);
+// Rotas da API
+app.use('/api/events', eventRouter);
+app.use('/api/users', usersRouter);
+app.use('/api/login', loginRouter);
+app.use('/api/profile', profileRouter);
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
-app.use('/events', eventRouter);
-app.use('/login', loginRouter);
-app.use('/profile', profileRouter);
-
-
-
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404));
+// Rota para verificar se o servidor está funcionando
+app.get('/api', (req, res) => {
+    res.json({ message: 'API está funcionando!' });
 });
 
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+// Catch 404 and forward to error handler
+app.use(function(req, res, next) {
+    next(createError(404));
+});
 
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+// Error handler
+app.use(function(err, req, res, next) {
+    res.status(err.status || 500).json({ 
+        error: {
+            message: err.message,
+            status: err.status || 500,
+        } 
+    });
 });
 
 module.exports = app;
