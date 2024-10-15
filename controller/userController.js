@@ -1,7 +1,7 @@
 const User = require('../models/user');
+const createError = require('http-errors');
 const Event = require('../models/event');
 const bcrypt = require('bcrypt');
-const createError = require('http-errors');
 
 exports.createUser = async (req, res) => {
   try {
@@ -12,15 +12,16 @@ exports.createUser = async (req, res) => {
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
     // Criar o novo usuário com o hash da senha
-    const newUser = await User.create({ username, email, password: passwordHash });
+    const newUser = await User.create({ username, email, passwordHash });
 
-    // Armazenar o userId na sessão
-    req.session.userId = newUser._id;
+    // Armazena o ID do usuário na sessão, se necessário
+    req.session.userId = newUser._id; // Se você ainda usar sessão
 
-    // Retornar o novo usuário em formato JSON
-    res.status(201).json({ message: 'Usuário criado com sucesso', user: newUser });
+    // Retorna uma resposta JSON
+    res.status(201).json({ message: "Usuário criado com sucesso!", userId: newUser._id });
   } catch (error) {
-    res.status(400).json({ message: 'Erro ao criar usuário', error: error.message });
+    console.error("Erro ao criar usuário:", error);
+    res.status(500).json({ message: "Erro ao criar usuário", error: error.message });
   }
 };
 
@@ -29,7 +30,7 @@ exports.getAllUsers = async (req, res) => {
     const users = await User.find();
     res.status(200).json(users);
   } catch (error) {
-    res.status(500).json({ message: 'Erro ao buscar usuários', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -45,12 +46,18 @@ exports.getUserProfile = async (req, res) => {
       return res.status(404).json({ message: 'Usuário não encontrado' });
     }
 
+    // Encontrar os eventos criados e cadastrados pelo usuário
     const userEvents = await Event.find({ organizer: userId });
     const registeredEvents = await Event.find({ 'participants.user': userId });
 
-    res.status(200).json({ user, userEvents, registeredEvents });
+    // Retornar os dados do usuário e eventos em JSON
+    res.status(200).json({
+      user,
+      userEvents,
+      registeredEvents
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Erro ao buscar perfil do usuário', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -62,7 +69,7 @@ exports.updateUser = async (req, res) => {
     }
     res.status(200).json(updatedUser);
   } catch (error) {
-    res.status(500).json({ message: 'Erro ao atualizar usuário', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -74,6 +81,6 @@ exports.deleteUser = async (req, res) => {
     }
     res.status(200).json({ message: 'Usuário excluído com sucesso' });
   } catch (error) {
-    res.status(500).json({ message: 'Erro ao excluir usuário', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };

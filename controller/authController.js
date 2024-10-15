@@ -1,6 +1,5 @@
 const User = require('../models/user');
 const bcrypt = require('bcrypt');
-const createError = require('http-errors');
 
 exports.login = async (req, res) => {
     const { email, password } = req.body;
@@ -18,9 +17,9 @@ exports.login = async (req, res) => {
             return res.status(401).json({ message: 'Credenciais inválidas' });
         }
 
-        req.session.userId = user._id;
-        res.redirect('/');
+        req.session.userId = user._id; // Armazena o ID do usuário na sessão
+        res.status(200).json({ message: 'Login realizado com sucesso', userId: user._id }); // Resposta JSON
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: 'Erro ao realizar login', error: error.message });
     }
 };
